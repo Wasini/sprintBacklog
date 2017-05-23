@@ -14,17 +14,10 @@ import java.util.*;
 public class Scrum {
 
 
-    /**
-     * Pre: Las historias estan ordenadas por costo de tiempo de forma creciente
-     * @param storyValues Valores de las historias del backlog
-     * @param storyCost Costo de tiempo estimado de las historias del backlog
-     * @param sprintTime Tiempo total del sprint
-     * @return Matriz bidimensional con cada columna representando una hora del sprint y en la linea i
-     * esta la mejor suma de valores para el tiempo j eligiendo hasta los i'esimas historias
-     */
-    static public int[][] dynSprintTimeValue(Integer[]storyCost,Integer[] storyValues, int sprintTime ) {
+    static public List<Historia> sprintBacklog(List<Historia> h, int sprintTime ) {
 
-        int storyCount = storyValues.length;
+
+        int storyCount = h.size();
         int[][] T = new int[storyCount+1][sprintTime+1];
 
         //Historia ficticia con costo 0 y tiempo 0
@@ -35,39 +28,35 @@ public class Scrum {
         for(int i = 1;i<= storyCount;i++) {
             for (int j = 1; j <= sprintTime ; j++) {
 
-                if (j < storyCost[i-1]) {
+                if (j < h.get(i-1).getCosto()) {
                     T[i][j] = T[i-1][j];
                 } else {
-                    T[i][j] = Math.max(T[i-1][j],storyValues[i-1] + T[i-1][j-storyCost[i-1]]);
+                    T[i][j] = Math.max(T[i-1][j],h.get(i-1).getValor() + T[i-1][j-h.get(i-1).getCosto()]);
                 }
             }
         }
 
-        return T;
-    }
 
+        int workTime = sprintTime;
 
-//Retorna lista de indeces de las historias elegidas por la matriz de TiempoxValor
-    static public List<Integer> tracePickedStories(int[][] T, Integer[] storyCost) {
-        int totalStories = T.length;
-        int workTime = T[0].length-1;
+        List<Historia> elegidos = new ArrayList<Historia>();
 
-        List<Integer> indexs = new ArrayList<Integer>();
-
-
-        for (int i = totalStories-1; i > 0; i--) {
+        for (int i = storyCount; i > 0; i--) {
             if(T[i][workTime]!= T[i-1][workTime]) {
-                indexs.add(i-1);
-                workTime -= storyCost[i-1];
+                elegidos.add(h.get(i-1));
+                workTime -= h.get(i-1).getCosto();
             }
         }
 
-        return indexs;
-    };
+        return elegidos;
 
+    }
 
-//Carga backlog desde un txt con dir @path
-    static public void readBacklog(String path,List<Integer> costs,List<Integer> values,List<String> descriptions) {
+    static public List<Historia> readBacklog(String path) {
+
+        List<Integer> values = new ArrayList<Integer>();
+        List<Integer> costs = new ArrayList<Integer>();
+        List<String> descriptions = new ArrayList<String>();
 
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         try( BufferedReader br = new BufferedReader(new InputStreamReader(classloader.getResourceAsStream(path), "UTF-8"));) {
@@ -88,6 +77,13 @@ public class Scrum {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        List<Historia> historias = new ArrayList<Historia>();
+        for(int i = 0;i < values.size();i++) {
+            historias.add(new Historia(costs.get(i),values.get(i),descriptions.get(i)));
+        }
+
+        return historias;
     }
 
 }
